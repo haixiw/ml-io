@@ -28,6 +28,8 @@
 
 PYBIND11_DECLARE_HOLDER_TYPE(T, mlio::Intrusive_ptr<T>, true);
 
+typedef py::module::import("pyarrow").attr("NativeFile") NativeFile
+
 namespace py = pybind11;
 
 using namespace mlio;
@@ -47,13 +49,16 @@ struct Py_arrow_native_file {
     int own_file;
 };
 
-static py::object make_py_arrow_native_file(Intrusive_ptr<Input_stream> &&stream)
+static NativeFile make_py_arrow_native_file(Intrusive_ptr<Input_stream> &&stream)
 {
     auto nf_type = py::module::import("pyarrow").attr("NativeFile");
 
     auto nf_inst = nf_type();
+    printf("Now we have an object of NativeFile");
 
     auto *obj = reinterpret_cast<Py_arrow_native_file *>(nf_inst.ptr());
+
+    printf("The dangerous reinterpret_cast has taken place and NativeFlile pointer has been cast to pyarrow_native_file pointer")
 
     obj->random_access = std::make_shared<Arrow_file>(std::move(stream));
     obj->input_stream = obj->random_access;
@@ -66,15 +71,17 @@ static py::object make_py_arrow_native_file(Intrusive_ptr<Input_stream> &&stream
     return nf_inst;
 }
 
-static py::object as_arrow_file(const Data_store &st)
+static NativeFile as_arrow_file(const Data_store &st)
 {
     auto stream = st.open_read();
 
     return make_py_arrow_native_file(std::move(stream));
 }
 
-static py::object as_arrow_file(const Record &record)
+static NativeFile as_arrow_file(const Record &record)
 {
+    printf("loading record...");
+
     auto stream = make_intrusive<Memory_input_stream>(record.payload());
 
     return make_py_arrow_native_file(std::move(stream));
